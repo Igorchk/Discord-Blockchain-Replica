@@ -3,13 +3,6 @@
   "version": "1.0.0",
   "description": "A CSC196D Project",
   "homepage": "https://github.com/Igorchk/Discord-Blockchain-Replica#readme",
-  "bugs": {
-    "url": "https://github.com/Igorchk/Discord-Blockchain-Replica/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Igorchk/Discord-Blockchain-Replica.git"
-  },
   "license": "ISC",
   "author": "",
   "scripts": {
