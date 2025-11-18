@@ -1,0 +1,5 @@
+# Node and its modules
+/node_modules
+
+# React and Next.js
+/.next
