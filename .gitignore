@@ -1,4 +1,8 @@
-node_modules/
+# Node and its modules
+/node_modules
+
+# React and Next.js
+/.nextnode_modules/
 npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
