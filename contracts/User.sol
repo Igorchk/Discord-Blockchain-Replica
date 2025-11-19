@@ -1,30 +1,32 @@
 pragma solidity ^0.8.0;
 
-contract UserRegistry {
-    struct User {
+contract User {
+    struct UserData {
         string username;
-        string description;
-        string profilePicHash;  // IPFS CID
         bool registered;
     }
 
-    mapping(address => User) public users;
+    mapping(address => UserData) public users;
 
-    function registerUser(string calldata username) external {
+    event UserRegistered(address indexed user, string username);
+
+    function registerUser(string calldata name) external {
         require(!users[msg.sender].registered, "Already registered");
 
-        users[msg.sender] = User({
-            username: username,
-            description: "",
-            profilePicHash: "",
+        users[msg.sender] = UserData({
+            username: name,
             registered: true
         });
+
+        emit UserRegistered(msg.sender, name);
     }
 
-    function updateProfile(string calldata desc, string calldata picHash) external {
-        require(users[msg.sender].registered, "Not registered");
+    function isRegistered(address account) external view returns (bool) {
+        return users[account].registered;
+    }
 
-        users[msg.sender].description = desc;
-        users[msg.sender].profilePicHash = picHash;
+    function getUsername(address account) external view returns (string memory) {
+        require(users[account].registered, "Not registered");
+        return users[account].username;
     }
 }
