@@ -13,6 +13,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
+    "ethers": "^6.15.0",
+    "ipfs-http-client": "^60.0.1",
     "next": "^16.0.3",
     "react": "^19.2.0"
   }

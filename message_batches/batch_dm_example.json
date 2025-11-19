@@ -1,0 +1,7 @@
+{
+  "meta": { "type": "dm", "version": 1 },
+  "messages": [
+    { "sender": "0xSENDER", "receiver": "0xRECEIVER", "text": "hey", "timestamp": 1731974400 },
+    { "sender": "0xSENDER", "receiver": "0xRECEIVER", "text": "ready for demo?", "timestamp": 1731974460 }
+  ]
+}
