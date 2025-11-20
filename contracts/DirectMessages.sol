@@ -33,6 +33,15 @@ contract DirectMessages {
                 timestamp: block.timestamp
             })
         );
+        conversations[receiver][msg.sender].push(MessageBatch({
+                sender: msg.sender,
+                receiver: receiver,
+                cid: cid,
+                batchHash: batchHash,
+                timestamp: block.timestamp
+            })
+        );
+
 
         emit MessageBatchStored(msg.sender, receiver, cid, batchHash, block.timestamp);
     }

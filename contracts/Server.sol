@@ -22,7 +22,17 @@ contract Server {
         serverCount++;
     }
 
+    function isMember(uint256 serverId, address user) public view returns (bool) {
+        address[] storage m = servers[serverId].members;
+        for (uint256 i = 0; i < m.length; i++) {
+            if (m[i] == user) return true;
+        }
+        return false;
+    }
+
     function joinServer(uint256 serverId) external {
+        require(serverId < serverCount, "Invalid server");
+        require(!isMember(serverId, msg.sender), "Already joined");
         servers[serverId].members.push(msg.sender);
     }
 

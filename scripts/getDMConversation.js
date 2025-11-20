@@ -89,7 +89,7 @@ async function main() {
     console.log(`[${timestamp}] ${sender}: ${content}`);
   });
 
-  console.log("\n✔ Conversation loaded successfully.\n");
+  console.log("\nConversation loaded successfully.\n");
 }
 
 main().catch((err) => console.error("Error:", err));
