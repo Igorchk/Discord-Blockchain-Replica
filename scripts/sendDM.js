@@ -70,7 +70,7 @@ async function main() {
   const receipt = await tx.wait();
   console.log("Tx confirmed:", receipt.transactionHash);
 
-  console.log("\n✔ DM batch stored on-chain successfully!");
+  console.log("\nDM batch stored on-chain successfully!");
 }
 
 main().catch((err) => {

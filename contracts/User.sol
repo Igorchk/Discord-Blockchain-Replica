@@ -7,16 +7,21 @@ contract User {
     }
 
     mapping(address => UserData) public users;
+    mapping(string => bool) private takenUsernames;
 
     event UserRegistered(address indexed user, string username);
 
     function registerUser(string calldata name) external {
         require(!users[msg.sender].registered, "Already registered");
+        require(bytes(name).length > 0, "Empty username");
+        require(!takenUsernames[name], "Username taken");
 
         users[msg.sender] = UserData({
             username: name,
             registered: true
         });
+
+        takenUsernames[name] = true;
 
         emit UserRegistered(msg.sender, name);
     }
