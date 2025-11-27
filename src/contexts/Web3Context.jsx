@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect } from 'react';
-import { ethers } from 'ethers';
+import { createContext, useContext, useState, useEffect } from "react";
+import { ethers } from "ethers";
 
 const Web3Context = createContext();
 
@@ -14,16 +14,16 @@ export function Web3Provider({ children }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const connectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
-      alert('Please install MetaMask to use this DApp!');
+    if (typeof window.ethereum === "undefined") {
+      alert("Please install MetaMask to use this DApp!");
       return;
     }
 
     try {
       setIsLoading(true);
-      
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      
+
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
@@ -34,12 +34,9 @@ export function Web3Provider({ children }) {
       setAccount(address);
       setChainId(Number(network.chainId));
       setIsConnected(true);
-
-      console.log('Connected to wallet:', address);
-      console.log('Network:', network.chainId);
     } catch (error) {
-      console.error('Connection error:', error);
-      alert('Failed to connect wallet: ' + error.message);
+      console.error("Connection error:", error);
+      alert("Failed to connect wallet: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -51,12 +48,11 @@ export function Web3Provider({ children }) {
     setSigner(null);
     setIsConnected(false);
     setChainId(null);
-    console.log('Wallet disconnected');
   };
 
   useEffect(() => {
     if (window.ethereum) {
-      window.ethereum.on('accountsChanged', (accounts) => {
+      window.ethereum.on("accountsChanged", (accounts) => {
         if (accounts.length > 0) {
           connectWallet();
         } else {
@@ -64,17 +60,26 @@ export function Web3Provider({ children }) {
         }
       });
 
-      window.ethereum.on('chainChanged', () => {
+      window.ethereum.on("chainChanged", () => {
         window.location.reload();
       });
     }
 
     return () => {
       if (window.ethereum) {
-        window.ethereum.removeAllListeners('accountsChanged');
-        window.ethereum.removeAllListeners('chainChanged');
+        window.ethereum.removeAllListeners("accountsChanged");
+        window.ethereum.removeAllListeners("chainChanged");
       }
     };
+  }, []);
+
+  useEffect(() => {
+    async function checkConnection() {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        await connectWallet();
+      }
+    }
+    checkConnection();
   }, []);
 
   const value = {
@@ -88,17 +93,13 @@ export function Web3Provider({ children }) {
     disconnectWallet,
   };
 
-  return (
-    <Web3Context.Provider value={value}>
-      {children}
-    </Web3Context.Provider>
-  );
+  return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;
 }
 
 export const useWeb3 = () => {
   const context = useContext(Web3Context);
   if (!context) {
-    throw new Error('useWeb3 must be used within Web3Provider');
+    throw new Error("useWeb3 must be used within Web3Provider");
   }
   return context;
 };
