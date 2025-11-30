@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useWeb3 } from "@/contexts/Web3Context";
 import { getContracts } from "@/lib/contracts";
@@ -11,6 +11,24 @@ export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function checkIfRegistered() {
+      if (isConnected && signer && account) {
+        try {
+          const contracts = getContracts(signer);
+          const registered = await contracts.user.isRegistered(account);
+          if (registered) {
+            console.log("Already registered, redirecting to dashboard");
+            router.push("/dashboard");
+          }
+        } catch (err) {
+          console.error("Error checking registration:", err);
+        }
+      }
+    }
+    checkIfRegistered();
+  }, [isConnected, signer, account, router]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -35,7 +53,6 @@ export default function RegisterPage() {
       const tx = await contracts.user.registerUser(username);
 
       console.log("Transaction sent:", tx.hash);
-      await tx.wait();
 
       console.log("Registration complete");
       router.push("/dashboard");
