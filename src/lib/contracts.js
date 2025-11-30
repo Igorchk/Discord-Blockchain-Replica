@@ -6,10 +6,10 @@ import MessageABI from "../../build/contracts/Message.json";
 import DirectMessagesABI from "../../build/contracts/DirectMessages.json";
 
 const CONTRACTS = {
-  User: "0x9DF1Dec276296A2109e1BAFcAce18714F8be9bD3",
-  Server: "0x17FE209F5Cc8F0fd045Dc066b559e6b6ad12CE8b",
-  Message: "0xc1E6D480c9491Cb51cE2AfD7D9437264d38BF954",
-  DirectMessages: "0xCabc5D38588De7Ac42E4b5E42BAC91a4C2d53A26",
+  User: "0xBBfC6615745C44BE8f13019fF15Cd415F88e85A4",
+  Server: "0x662F226Bb95C85018d07de273eC3AC74967a742E",
+  Message: "0x92449bFbad97685983235d2A577985c2e8C00639",
+  DirectMessages: "0xA74CC605b37A7e97475a086B698FB926bDa771A1",
 };
 
 export class UserContract {
@@ -28,7 +28,13 @@ export class UserContract {
   }
 
   async isRegistered(address) {
-    return await this.contract.isRegistered(address);
+    try {
+      const result = await this.contract.isRegistered(address);
+      return Boolean(result);
+    } catch (error) {
+      console.error("isRegistered error:", error);
+      return false;
+    }
   }
 
   async getUsername(address) {
@@ -47,8 +53,8 @@ export class UserContract {
     return await this.contract.getUserData(address);
   }
 
-  async getAddress(username) {
-    return await this.contract.getAddress(username);
+  async getUserAddress(username) {
+    return await this.contract.getUserAddress(username);
   }
 }
 
