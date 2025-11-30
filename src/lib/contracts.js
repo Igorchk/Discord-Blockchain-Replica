@@ -6,10 +6,10 @@ import MessageABI from "../../build/contracts/Message.json";
 import DirectMessagesABI from "../../build/contracts/DirectMessages.json";
 
 const CONTRACTS = {
-  User: "0xBBfC6615745C44BE8f13019fF15Cd415F88e85A4",
-  Server: "0x662F226Bb95C85018d07de273eC3AC74967a742E",
-  Message: "0x92449bFbad97685983235d2A577985c2e8C00639",
-  DirectMessages: "0xA74CC605b37A7e97475a086B698FB926bDa771A1",
+  User: "0x19182526704DD7328D63bd2B3990aB1846e2CCa2",
+  Server: "0xE19B570964dC9349BdCd7406feAB384A22aae121",
+  Message: "0x31eBF533dDF46F04bF22F850DB65Cbd146431C76",
+  DirectMessages: "0x04402E58b0B53B3BcC1bde242002CB911C2d8327",
 };
 
 export class UserContract {
@@ -106,6 +106,25 @@ export class ServerContract {
   async getAllServers() {
     return await this.contract.getAllServers();
   }
+
+  async createChannel(serverId, channelName) {
+    const tx = await this.contract.createChannel(serverId, channelName);
+    const receipt = await tx.wait();
+    return receipt;
+  }
+
+  async getChannel(serverId, channelId) {
+    return await this.contract.getChannel(serverId, channelId);
+  }
+
+  async getChannelCount(serverId) {
+    const count = await this.contract.getChannelCount(serverId);
+    return Number(count);
+  }
+
+  async getAllChannels(serverId) {
+    return await this.contract.getAllChannels(serverId);
+  }
 }
 
 export class MessageContract {
@@ -117,9 +136,10 @@ export class MessageContract {
     );
   }
 
-  async storeBatch(serverId, cid, batchHash, previousCid = "") {
+  async storeBatch(serverId, channelId, cid, batchHash, previousCid = "") {
     const tx = await this.contract.storeBatch(
       serverId,
+      channelId,
       cid,
       batchHash,
       previousCid
@@ -128,12 +148,12 @@ export class MessageContract {
     return receipt;
   }
 
-  async getBatches(serverId) {
-    return await this.contract.getBatches(serverId);
+  async getBatches(serverId, channelId) {
+    return await this.contract.getBatches(serverId, channelId);
   }
 
-  async getBatchCount(serverId) {
-    const count = await this.contract.getBatchCount(serverId);
+  async getBatchCount(serverId, channelId) {
+    const count = await this.contract.getBatchCount(serverId, channelId);
     return Number(count);
   }
 }
