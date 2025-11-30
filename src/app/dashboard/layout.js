@@ -15,28 +15,28 @@ export default function DashboardLayout({ children }) {
   const [tooltip, setToolTip] = useState({ show: false, text: "", x: 0, y: 0 });
   const [username, setUsername] = useState("");
 
-  useEffect(() => {
-    async function fetchUsername() {
-      if (isConnected && signer && account) {
-        try {
-          const contracts = getContracts(signer);
-          const name = await contracts.user.getUsername(account);
-          setUsername(name);
-        } catch (err) {
-          console.error("Error fetching username:", err);
-        }
-      }
-    }
-    fetchUsername();
-  }, [isConnected, signer, account]);
+    // Placeholder Servers
+    const [servers, setServers] = useState([
+        { id: "server1", label: "S1", name: "Server One", members: ["alice", "bob"] },
+        { id: "server2", label: "S2", name: "Server Two", members: ["alice"] },
+    ]);
 
-  useEffect(() => {
-    if (account && typeof window !== "undefined") {
-      const key = `friends_${account.toLowerCase()}`;
-      const saved = localStorage.getItem(key);
-      setFriends(saved ? JSON.parse(saved) : []);
-    }
-  }, [account]);
+    // Placeholder Channels
+    const [channels, setChannels] = useState({
+        server1: [
+            { id: "general", name: "#general" },
+            { id: "chat", name: "#chat" },
+            { id: "random", name: "#random" }
+        ],
+        server2: [{ id: "general", name: "#general" }]
+    });
+
+    // Modal State
+    const [showCreateServer, setShowCreateServer] = useState(false);
+    const [newServerName, setNewServerName] = useState("");
+
+    const [showCreateChannel, setShowCreateChannel] = useState(false);
+    const [newChannelName, setNewChannelName] = useState("");
 
   const servers = [
     { id: "server1", label: "S1", name: "Server One", unread: 2 },
@@ -49,52 +49,46 @@ export default function DashboardLayout({ children }) {
     { id: "random", name: "#random" },
   ];
 
-  const handleFriendAdded = (friend) => {
-    if (!friends.find((f) => f.address === friend.address)) {
-      const newFriends = [...friends, friend];
-      setFriends(newFriends);
-      if (account && typeof window !== "undefined") {
-        const key = `friends_${account.toLowerCase()}`;
-        localStorage.setItem(key, JSON.stringify(newFriends));
-      }
-    }
-  };
+    // Create Server
+    const handleCreateServer = () => {
+        if(!newServerName.trim()) return;
 
-  const showTooltip = (text, event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setToolTip({
-      show: true,
-      text,
-      x: rect.right + 10,
-      y: rect.top + rect.height / 2,
-    });
-  };
+        const newID = "server" + (servers.length + 1);
+        setServers([
+            ...servers,
+            {
+                id: newID,
+                label: "S" + (servers.length + 1),
+                name: newServerName,
+                members: ["alice"]
+            }
+        ]);
+        setChannels({...channels, [newID]: [{id: "general", name: "#general"}]});
+        setNewServerName("");
+        setShowCreateServer(false);
+    };
 
-  const hideTooltip = () => setToolTip({ show: false, text: "", x: 0, y: 0 });
+    // Create Channel
+    const handleCreateChannel = () => {
+        if(!newChannelName.trim() || !selectedServer) return;
 
-  return (
-    <div
-      style={{
-        height: "100vh",
-        width: "100vw",
-        display: "flex",
-        overflow: "hidden",
-        flexDirection: "column",
-      }}
-    >
-      <div
-        style={{
-          padding: "12px 20px",
-          background: "rgba(0, 0, 0, 0.4)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ color: "white", fontSize: "18px", fontWeight: "bold" }}>
-          {username || "Loading..."}
-        </div>
+        const serverCh = channels[selectedServer] || [];
+        setChannels({
+            ...channels,
+            [selectedServer]: [
+                ...serverCh,
+                {
+                    id: newChannelName.toLowerCase().replace(/\s+/g, "-"),
+                    name: "#" + newChannelName
+                }
+            ]
+        });
+
+        setNewChannelName("");
+        setShowCreateChannel(false);
+    };
+
+    return (
         <div
           style={{
             color: "rgba(255,255,255,0.7)",
@@ -271,16 +265,13 @@ export default function DashboardLayout({ children }) {
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {server.unread}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+                    justifyContent: "flex-start",
+                    height: "100%",
+                    gap: "16px",
+                    boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
+                    position: "relative",
+                }} 
+            >
 
         <div
           style={{
@@ -326,9 +317,34 @@ export default function DashboardLayout({ children }) {
                 >
                   No friends yet. Add someone to start chatting!
                 </div>
-              ) : (
-                <div style={{ color: "white", opacity: 0.8 }}>
-                  {friends.map((friend) => (
+
+                {/* Add Server Button */}
+                <div
+                    onClick={() => setShowCreateServer(true)}
+                    onMouseEnter={(e) => showTooltip("Create Server", e)}
+                    onMouseLeave={hideTooltip}
+                    style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+                        color: "white",
+                        fontSize: "28px",
+                        fontWeight: "bold",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        marginBottom: "12px",
+                        transition: "0.2s",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                    }}
+                >
+                    +
+                </div>
+
+                {/* Server Icons */}
+                {servers.map((server) => (
                     <div
                       key={friend.address}
                       onClick={() => setSelectedFriend(friend)}
@@ -361,11 +377,104 @@ export default function DashboardLayout({ children }) {
                         {friend.address.slice(-4)}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+                ))}
+            </div>
+
+            {/* Friend List OR Channel List*/}
+            <div
+                style = {{
+                    width: "260px",
+                    background: "rgba(0, 0, 0, 0.3)",
+                    backdropFilter: "blur(4px)",
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    borderRight: "1px solid rgba(255, 255, 255, 0.1)",
+                    color: "white",
+                }}
+            >
+                {/* Show Friends List */}
+                {selectedServer === null && (
+                    <>
+                        <h2 style={{marginBottom: "20px", fontSize: "20px"}}>Friends</h2>
+
+                        <button style={{marginBottom: "20px"}}>Add Friend</button>
+
+                        <div style={{color: "white", opacity: 0.8}}>
+                            <p className="mb-2">user#1234</p>
+                            <p className="mb-2">user#5678</p>
+                        </div>  
+                    </>
+                )}
+                
+                {/* Show Channel List */}
+                {selectedServer !== null && (
+                    <>
+                        <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>Channels</h2>
+
+                        {/* Add Channel Button */}
+                        <div
+                            onClick={() => setShowCreateChannel(true)}
+                            style={{
+                                padding: "6px 10x",
+                                borderRadius: "6px",
+                                marginBottom: "12px",
+                                cursor: "pointer",
+                                color: "rgba(255, 255, 255, 0.7)",
+                                background: "rgba(255, 255, 255, 0.05)",
+                                fontSize: "14px",
+                                width: "fit-content",
+                                transition: "0.2s",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+                                e.currentTarget.style.color = "white";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                e.currentTarget.style.color = "rgba(255, 255, 255, 0.7)";
+                            }}
+                        >
+                            + Add Channel
+                        </div>
+
+                        {(channels[selectedServer] || []).map((channel) => {
+                            const isActive = activeChannel === channel.id;
+
+                            return (
+                                <div
+                                    key={channel.id}
+                                    onClick={() => setActiveChannel(channel.id)}
+                                    style={{
+                                        padding: "10px",
+                                        borderRadius: "8px",
+                                        marginBottom: "6px",
+                                        cursor: "pointer",
+                                        color: "white",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        position: "relative",
+                                        background: isActive
+                                            ? "rgba(255,255,255,0.25)"
+                                            : "transparent",
+                                        transform: isActive ? "scale(1.02)" : "scale(1)",
+                                        transition: "0.2s",
+                                    }}
+                                >
+                                    {/* White Pill Indicator */}
+                                    {isActive && (
+                                        <div
+                                            style={{
+                                                width: "6px",
+                                                height: "100%",
+                                                background: "white",
+                                                borderRadius: "6px",
+                                                position: "absolute",
+                                                left: "-12px",
+                                            }}
+                                        />
+                                    )}
 
           {selectedServer !== null && (
             <>
