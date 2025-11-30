@@ -13,7 +13,7 @@ module.exports = async function (deployer) {
   await deployer.deploy(Message, serverInstance.address, userInstance.address);
   const messageInstance = await Message.deployed();
 
-  deployer.deploy(DirectMessages);
+  await deployer.deploy(DirectMessages);
   const directMessagesInstance = await DirectMessages.deployed();
 
   console.log(`
