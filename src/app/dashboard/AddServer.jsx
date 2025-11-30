@@ -1,15 +1,21 @@
 "use client";
 import { useState } from "react";
+import { getContracts } from "@/lib/contracts";
+import { useWeb3 } from "@/contexts/Web3Context";
 
-export default function AddServer({ onCreate, onJoin, onClose }) {
-  const [mode, setMode] = useState("create");   // "create" | "join"
+export default function AddServer({
+  onServerCreated,
+  onServerJoined,
+  onClose,
+}) {
+  const { signer } = useWeb3();
+  const [mode, setMode] = useState("create");
   const [serverName, setServerName] = useState("");
-  const [serverAddress, setServerAddress] = useState("");
+  const [serverId, setServerId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Create new server
-  const handleCreate = (e) => {
+  const handleCreate = async (e) => {
     e.preventDefault();
 
     if (!serverName.trim()) {
@@ -20,28 +26,82 @@ export default function AddServer({ onCreate, onJoin, onClose }) {
     setLoading(true);
     setError("");
 
-    // Will attach blockchain later
-    onCreate(serverName);
-    setLoading(false);
-    onClose();
+    try {
+      const contracts = getContracts(signer);
+
+      // Create server on blockchain
+      const receipt = await contracts.server.createServer(serverName);
+
+      // Get the server count to determine the new server's ID
+      const serverCount = await contracts.server.getServerCount();
+      const newServerId = serverCount - 1; // Server IDs start at 0
+
+      // Get server details
+      const serverData = await contracts.server.getServer(newServerId);
+
+      const newServer = {
+        id: newServerId,
+        name: serverData[0], // name
+        owner: serverData[1], // owner
+        memberCount: serverData[2].length, // members array length
+      };
+
+      onServerCreated(newServer);
+      setServerName("");
+      onClose();
+    } catch (err) {
+      console.error("Error creating server:", err);
+      setError("Failed to create server: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Join existing server
-  const handleJoin = (e) => {
+  const handleJoin = async (e) => {
     e.preventDefault();
 
-    if (!serverAddress.trim()) {
-      setError("Please enter a server address");
+    if (!serverId.trim()) {
+      setError("Please enter a server ID");
       return;
     }
 
     setLoading(true);
     setError("");
 
-    // Will attach blockchain later
-    onJoin(serverAddress);
-    setLoading(false);
-    onClose();
+    try {
+      const contracts = getContracts(signer);
+      const serverIdNum = parseInt(serverId);
+
+      // Check if server exists
+      const serverCount = await contracts.server.getServerCount();
+      if (serverIdNum >= serverCount) {
+        setError("Server does not exist");
+        setLoading(false);
+        return;
+      }
+
+      // Join server on blockchain
+      await contracts.server.joinServer(serverIdNum);
+
+      // Get server details
+      const serverData = await contracts.server.getServer(serverIdNum);
+
+      const joinedServer = {
+        id: serverIdNum,
+        name: serverData[0],
+        owner: serverData[1],
+        memberCount: serverData[2].length,
+      };
+
+      onServerJoined(joinedServer);
+      setServerId("");
+      onClose();
+    } catch (err) {
+      console.error("Error joining server:", err);
+      setError("Failed to join server: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -76,7 +136,10 @@ export default function AddServer({ onCreate, onJoin, onClose }) {
         {/* Mode toggle buttons */}
         <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
           <button
-            onClick={() => setMode("create")}
+            onClick={() => {
+              setMode("create");
+              setError("");
+            }}
             style={{
               flex: 1,
               padding: "10px",
@@ -95,7 +158,10 @@ export default function AddServer({ onCreate, onJoin, onClose }) {
           </button>
 
           <button
-            onClick={() => setMode("join")}
+            onClick={() => {
+              setMode("join");
+              setError("");
+            }}
             style={{
               flex: 1,
               padding: "10px",
@@ -122,7 +188,7 @@ export default function AddServer({ onCreate, onJoin, onClose }) {
               type="text"
               value={serverName}
               onChange={(e) => setServerName(e.target.value)}
-              placeholder="Enter server name"
+              placeholder="My Public Server"
               disabled={loading}
               style={{
                 width: "100%",
@@ -160,17 +226,16 @@ export default function AddServer({ onCreate, onJoin, onClose }) {
                   flex: 1,
                   padding: "12px",
                   borderRadius: "8px",
-                  background:
-                    loading
-                      ? "rgba(139,92,246,0.5)"
-                      : "linear-gradient(135deg,#8b5cf6,#3b82f6)",
+                  background: loading
+                    ? "rgba(139,92,246,0.5)"
+                    : "linear-gradient(135deg,#8b5cf6,#3b82f6)",
                   color: "white",
                   border: "none",
-                  cursor: "pointer",
+                  cursor: loading ? "not-allowed" : "pointer",
                   fontWeight: "bold",
                 }}
               >
-                Create
+                {loading ? "Creating..." : "Create Server"}
               </button>
 
               <button
@@ -197,13 +262,14 @@ export default function AddServer({ onCreate, onJoin, onClose }) {
         {/* Join Server Form */}
         {mode === "join" && (
           <form onSubmit={handleJoin}>
-            <label style={{ color: "white" }}>Server Address</label>
+            <label style={{ color: "white" }}>Server ID</label>
             <input
-              type="text"
-              value={serverAddress}
-              onChange={(e) => setServerAddress(e.target.value)}
-              placeholder="Enter contract address"
+              type="number"
+              value={serverId}
+              onChange={(e) => setServerId(e.target.value)}
+              placeholder="0"
               disabled={loading}
+              min="0"
               style={{
                 width: "100%",
                 marginTop: "8px",
@@ -213,9 +279,19 @@ export default function AddServer({ onCreate, onJoin, onClose }) {
                 border: "1px solid rgba(255,255,255,0.2)",
                 color: "white",
                 fontSize: "16px",
-                marginBottom: "16px",
+                marginBottom: "8px",
               }}
             />
+            <p
+              style={{
+                fontSize: "12px",
+                opacity: 0.7,
+                color: "white",
+                marginBottom: "16px",
+              }}
+            >
+              Ask the server owner for the server ID
+            </p>
 
             {error && (
               <div
@@ -240,17 +316,16 @@ export default function AddServer({ onCreate, onJoin, onClose }) {
                   flex: 1,
                   padding: "12px",
                   borderRadius: "8px",
-                  background:
-                    loading
-                      ? "rgba(139,92,246,0.5)"
-                      : "linear-gradient(135deg,#8b5cf6,#3b82f6)",
+                  background: loading
+                    ? "rgba(139,92,246,0.5)"
+                    : "linear-gradient(135deg,#8b5cf6,#3b82f6)",
                   color: "white",
                   border: "none",
-                  cursor: "pointer",
+                  cursor: loading ? "not-allowed" : "pointer",
                   fontWeight: "bold",
                 }}
               >
-                Join
+                {loading ? "Joining..." : "Join Server"}
               </button>
 
               <button

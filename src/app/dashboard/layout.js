@@ -2,24 +2,27 @@
 import { useState, useEffect } from "react";
 import { useWeb3 } from "@/contexts/Web3Context";
 import { getContracts } from "@/lib/contracts";
-import DirectMessages from "./DirectMessages.jsx";  // DM panel
-import AddFriend from "./AddFriend.jsx";            // Add Friend modal
-import AddServer from "./AddServer.jsx";            // Add Server modal
-import AddChannel from "./AddChannel.jsx";          // Add Channel modal
+import DirectMessages from "./DirectMessages.jsx";
+import ServerMessages from "./ServerMessages.jsx";
+import AddFriend from "./AddFriend.jsx";
+import AddServer from "./AddServer.jsx";
+import AddChannel from "./AddChannel.jsx";
 
 export default function DashboardLayout({ children }) {
   const { account, signer, isConnected } = useWeb3();
   const [selectedServer, setSelectedServer] = useState(null);
-  const [activeChannel, setActiveChannel] = useState(null);
+  const [selectedChannel, setSelectedChannel] = useState(null);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [friends, setFriends] = useState([]);
+  const [servers, setServers] = useState([]);
+  const [channels, setChannels] = useState([]);
   const [showAddFriend, setShowAddFriend] = useState(false);
-  const [tooltip, setToolTip] = useState({ show: false, text: "", x: 0, y: 0 });
-  const [username, setUsername] = useState("");
   const [showAddServer, setShowAddServer] = useState(false);
   const [showAddChannel, setShowAddChannel] = useState(false);
+  const [tooltip, setToolTip] = useState({ show: false, text: "", x: 0, y: 0 });
+  const [username, setUsername] = useState("");
+  const [isServerOwner, setIsServerOwner] = useState(false);
 
-  // Fetch username
   useEffect(() => {
     async function fetchUsername() {
       if (isConnected && signer && account) {
@@ -35,7 +38,6 @@ export default function DashboardLayout({ children }) {
     fetchUsername();
   }, [isConnected, signer, account]);
 
-  // Load friends list
   useEffect(() => {
     if (account && typeof window !== "undefined") {
       const key = `friends_${account.toLowerCase()}`;
@@ -44,18 +46,77 @@ export default function DashboardLayout({ children }) {
     }
   }, [account]);
 
-  // Placeholder Servers
-  const servers = [
-    { id: "server1", label: "S1", name: "Server One", unread: 2 },
-    { id: "server2", label: "S2", name: "Server Two", unread: 5 },
-  ];
+  useEffect(() => {
+    async function loadServers() {
+      if (isConnected && signer && account) {
+        try {
+          const contracts = getContracts(signer);
+          const serverCount = await contracts.server.getServerCount();
 
-  // Placeholder Channels
-  const channels = [
-    { id: "general", name: "#general" },
-    { id: "chat", name: "#chat" },
-    { id: "random", name: "#random" },
-  ];
+          const userServers = [];
+          for (let i = 0; i < serverCount; i++) {
+            const isMember = await contracts.server.isMember(i, account);
+            if (isMember) {
+              const serverData = await contracts.server.getServer(i);
+              userServers.push({
+                id: i,
+                name: serverData[0],
+                owner: serverData[1],
+                memberCount: serverData[2].length,
+              });
+            }
+          }
+
+          setServers(userServers);
+        } catch (err) {
+          console.error("Error loading servers:", err);
+        }
+      }
+    }
+    loadServers();
+  }, [isConnected, signer, account]);
+
+  useEffect(() => {
+    async function loadChannels() {
+      if (selectedServer && isConnected && signer) {
+        try {
+          setChannels([]);
+          setSelectedChannel(null);
+
+          const contracts = getContracts(signer);
+          const channelData = await contracts.server.getAllChannels(
+            selectedServer.id
+          );
+
+          const channelList = [];
+          for (let i = 0; i < channelData[0].length; i++) {
+            channelList.push({
+              id: Number(channelData[0][i]),
+              name: channelData[1][i],
+            });
+          }
+
+          setChannels(channelList);
+
+          if (channelList.length > 0) {
+            setSelectedChannel(channelList[0]);
+          }
+
+          setIsServerOwner(
+            selectedServer.owner.toLowerCase() === account.toLowerCase()
+          );
+        } catch (err) {
+          console.error("Error loading channels:", err);
+          setChannels([]);
+          setSelectedChannel(null);
+        }
+      } else {
+        setChannels([]);
+        setSelectedChannel(null);
+      }
+    }
+    loadChannels();
+  }, [selectedServer, isConnected, signer, account]);
 
   const handleFriendAdded = (friend) => {
     if (!friends.find((f) => f.address === friend.address)) {
@@ -66,6 +127,24 @@ export default function DashboardLayout({ children }) {
         localStorage.setItem(key, JSON.stringify(newFriends));
       }
     }
+  };
+
+  const handleServerCreated = (server) => {
+    setServers([...servers, server]);
+    setShowAddServer(false);
+  };
+
+  const handleServerJoined = (server) => {
+    if (!servers.find((s) => s.id === server.id)) {
+      setServers([...servers, server]);
+    }
+    setShowAddServer(false);
+  };
+
+  const handleChannelAdded = (channel) => {
+    setChannels([...channels, channel]);
+    setShowAddChannel(false);
+    setSelectedChannel(channel);
   };
 
   const showTooltip = (text, event) => {
@@ -90,12 +169,12 @@ export default function DashboardLayout({ children }) {
         flexDirection: "column",
       }}
     >
-      {/* Top Bar */}
+      {/* Top Header */}
       <div
         style={{
           padding: "12px 20px",
-          background: "rgba(0,0,0,0.4)",
-          borderBottom: "1px solid rgba(255,255,255,0.1)",
+          background: "rgba(0, 0, 0, 0.4)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -104,7 +183,6 @@ export default function DashboardLayout({ children }) {
         <div style={{ color: "white", fontSize: "18px", fontWeight: "bold" }}>
           {username || "Loading..."}
         </div>
-
         <div
           style={{
             color: "rgba(255,255,255,0.7)",
@@ -116,16 +194,8 @@ export default function DashboardLayout({ children }) {
         </div>
       </div>
 
-      {/* Layout Row */}
-      <div
-        style={{
-          height: "100%",
-          width: "100%",
-          display: "flex",
-          overflow: "hidden",
-        }}
-      >
-        {/* Tooltip */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Tooltips */}
         {tooltip.show && (
           <div
             style={{
@@ -133,20 +203,21 @@ export default function DashboardLayout({ children }) {
               top: tooltip.y,
               left: tooltip.x,
               transform: "translateY(-50%)",
-              background: "rgba(0,0,0,0.8)",
+              background: "rgba(0, 0, 0, 0.8)",
               padding: "6px 10px",
               borderRadius: "6px",
               color: "white",
               fontSize: "14px",
               whiteSpace: "nowrap",
-              zIndex: 999,
+              zIndex: 50,
+              pointerEvents: "none",
             }}
           >
             {tooltip.text}
           </div>
         )}
 
-        {/* Add Friend Modal */}
+        {/* Modals */}
         {showAddFriend && (
           <AddFriend
             onFriendAdded={handleFriendAdded}
@@ -154,52 +225,45 @@ export default function DashboardLayout({ children }) {
           />
         )}
 
-        {/* Add Server Modal */}
         {showAddServer && (
           <AddServer
-            onCreate={(name) => {
-              console.log("Create server:", name);
-              setShowAddServer(false);
-            }}
-            onJoin={(address) => {
-              console.log("Join server:", address);
-              setShowAddServer(false);
-            }}
+            onServerCreated={handleServerCreated}
+            onServerJoined={handleServerJoined}
             onClose={() => setShowAddServer(false)}
           />
         )}
 
-        {/* Add Channel Modal */}
-        {showAddChannel && (
+        {showAddChannel && selectedServer && (
           <AddChannel
-            onChannelAdded={(channel) => {
-              console.log("New channel:", channel);
-              setShowAddChannel(false);
-            }}
+            serverId={selectedServer.id}
+            onChannelAdded={handleChannelAdded}
             onClose={() => setShowAddChannel(false)}
           />
         )}
 
-        {/* LEFT SIDEBAR */}
+        {/* Server Sidebar */}
         <div
           style={{
             width: "80px",
-            background: "rgba(255,255,255,0.1)",
+            background: "rgba(255, 255, 255, 0.1)",
             backdropFilter: "blur(2px)",
             padding: "12px 0",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: "16px",
-            boxShadow: "0 0 10px rgba(0,0,0,0.3)",
+            boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
+            position: "relative",
+            overflowY: "auto",
           }}
         >
           {/* Home Button */}
           <div
             onClick={() => {
               setSelectedServer(null);
-              setActiveChannel(null);
+              setSelectedChannel(null);
               setSelectedFriend(null);
+              setChannels([]);
             }}
             onMouseEnter={(e) => showTooltip("Home", e)}
             onMouseLeave={hideTooltip}
@@ -207,18 +271,27 @@ export default function DashboardLayout({ children }) {
               width: "48px",
               height: "48px",
               borderRadius: "50%",
-              background:
-                selectedServer === null && !selectedFriend
-                  ? "linear-gradient(135deg,#8b5cf6,#3b82f6)"
-                  : "linear-gradient(135deg,#3b82f6,#8b5cf6)",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              cursor: "pointer",
-              fontWeight: "bold",
               color: "white",
+              fontWeight: "bold",
               fontSize: "20px",
+              cursor: "pointer",
               position: "relative",
+              transition: "0.2s",
+              background:
+                selectedServer === null && !selectedFriend
+                  ? "linear-gradient(135deg, #8b5cf6, #3b82f6)"
+                  : "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+              transform:
+                selectedServer === null && !selectedFriend
+                  ? "scale(1.15)"
+                  : "scale(1)",
+              boxShadow:
+                selectedServer === null && !selectedFriend
+                  ? "0 0 10px rgba(255, 255, 255, 0.5)"
+                  : "none",
             }}
           >
             {selectedServer === null && !selectedFriend && (
@@ -233,7 +306,7 @@ export default function DashboardLayout({ children }) {
                 }}
               />
             )}
-            🏠
+            H
           </div>
 
           {/* Add Server Button */}
@@ -245,26 +318,31 @@ export default function DashboardLayout({ children }) {
               width: "48px",
               height: "48px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg,#3b82f6,#8b5cf6)",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              cursor: "pointer",
-              fontSize: "28px",
-              fontWeight: "bold",
               color: "white",
+              fontWeight: "bold",
+              fontSize: "28px",
+              cursor: "pointer",
+              background: "linear-gradient(135deg, #10b981, #059669)",
+              transition: "0.2s",
             }}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.transform = "scale(1.1)")
+            }
+            onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
             +
           </div>
 
-          {/* Server Icons */}
+          {/* User's Servers */}
           {servers.map((server) => (
             <div
               key={server.id}
               onClick={() => {
-                setSelectedServer(server.id);
-                setActiveChannel(null);
+                setSelectedServer(server);
+                setSelectedChannel(null);
                 setSelectedFriend(null);
               }}
               onMouseEnter={(e) => showTooltip(server.name, e)}
@@ -276,19 +354,27 @@ export default function DashboardLayout({ children }) {
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                cursor: "pointer",
-                background:
-                  selectedServer === server.id
-                    ? "linear-gradient(135deg,#8b5cf6,#3b82f6)"
-                    : "linear-gradient(135deg,#7c3aed,#4338ca)",
-                transform:
-                  selectedServer === server.id ? "scale(1.15)" : "scale(1)",
-                position: "relative",
                 color: "white",
                 fontWeight: "bold",
+                fontSize: "16px",
+                cursor: "pointer",
+                position: "relative",
+                transition: "0.2s",
+                background:
+                  selectedServer?.id === server.id
+                    ? "linear-gradient(135deg, #8b5cf6, #3b82f6)"
+                    : "linear-gradient(135deg, #7c3aed, #4338ca)",
+                transform:
+                  selectedServer?.id === server.id
+                    ? "scale(1.15)"
+                    : "scale(1.0)",
+                boxShadow:
+                  selectedServer?.id === server.id
+                    ? "0 0 10px rgba(255, 255, 255, 0.5)"
+                    : "none",
               }}
             >
-              {selectedServer === server.id && (
+              {selectedServer?.id === server.id && (
                 <div
                   style={{
                     width: "6px",
@@ -300,47 +386,25 @@ export default function DashboardLayout({ children }) {
                   }}
                 />
               )}
-
-              {server.label}
-
-              {server.unread > 0 && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: -4,
-                    right: -4,
-                    width: "20px",
-                    height: "20px",
-                    background: "red",
-                    borderRadius: "50%",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    color: "white",
-                    fontSize: "12px",
-                  }}
-                >
-                  {server.unread}
-                </div>
-              )}
+              {server.name.charAt(0).toUpperCase()}
             </div>
           ))}
         </div>
 
-        {/* Show Friends or Channels List */}
+        {/* Channel/Friend Sidebar */}
         <div
           style={{
             width: "260px",
-            background: "rgba(0,0,0,0.3)",
+            background: "rgba(0, 0, 0, 0.3)",
             backdropFilter: "blur(4px)",
             padding: "20px",
             display: "flex",
             flexDirection: "column",
-            borderRight: "1px solid rgba(255,255,255,0.1)",
+            borderRight: "1px solid rgba(255, 255, 255, 0.1)",
             color: "white",
           }}
         >
-          {/* Friend List */}
+          {/* Friends View */}
           {selectedServer === null && (
             <>
               <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>
@@ -350,154 +414,178 @@ export default function DashboardLayout({ children }) {
               <button
                 onClick={() => setShowAddFriend(true)}
                 style={{
-                  padding: "10px",
                   marginBottom: "20px",
+                  padding: "10px",
                   borderRadius: "6px",
-                  background: "linear-gradient(135deg,#8b5cf6,#3b82f6)",
+                  background: "linear-gradient(135deg, #8b5cf6, #3b82f6)",
                   color: "white",
                   border: "none",
                   cursor: "pointer",
+                  fontWeight: "bold",
                 }}
               >
                 Add Friend
               </button>
 
               {friends.length === 0 ? (
-                <div style={{ opacity: 0.7 }}>No friends yet.</div>
+                <div
+                  style={{
+                    textAlign: "center",
+                    opacity: 0.7,
+                    marginTop: "20px",
+                  }}
+                >
+                  No friends yet. Add someone to start chatting!
+                </div>
               ) : (
-                friends.map((friend) => (
-                  <div
-                    key={friend.address}
-                    onClick={() => setSelectedFriend(friend)}
-                    style={{
-                      padding: "12px",
-                      marginBottom: "8px",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      background:
-                        selectedFriend?.address === friend.address
-                          ? "rgba(255,255,255,0.2)"
-                          : "transparent",
-                      transition: "0.2s",
-                    }}
-                  >
-                    <div style={{ fontWeight: "bold" }}>
-                      {friend.username}
+                <div style={{ color: "white", opacity: 0.8 }}>
+                  {friends.map((friend) => (
+                    <div
+                      key={friend.address}
+                      onClick={() => setSelectedFriend(friend)}
+                      style={{
+                        padding: "12px",
+                        borderRadius: "8px",
+                        marginBottom: "8px",
+                        cursor: "pointer",
+                        background:
+                          selectedFriend?.address === friend.address
+                            ? "rgba(255, 255, 255, 0.2)"
+                            : "transparent",
+                        transition: "0.2s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background =
+                          "rgba(255, 255, 255, 0.15)")
+                      }
+                      onMouseLeave={(e) => {
+                        if (selectedFriend?.address !== friend.address) {
+                          e.currentTarget.style.background = "transparent";
+                        }
+                      }}
+                    >
+                      <div style={{ fontWeight: "bold" }}>
+                        {friend.username}
+                      </div>
+                      <div style={{ fontSize: "11px", opacity: 0.7 }}>
+                        {friend.address.slice(0, 6)}...
+                        {friend.address.slice(-4)}
+                      </div>
                     </div>
-                    <div style={{ fontSize: "11px", opacity: 0.7 }}>
-                      {friend.address.slice(0, 6)}...
-                      {friend.address.slice(-4)}
-                    </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </>
           )}
 
-          {/* Channel List */}
+          {/* Server Channels View */}
           {selectedServer !== null && (
             <>
-              <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>
-                Channels
-              </h2>
-
-              <div
-                onClick={() => setShowAddChannel(true)}
-                style={{
-                  padding: "6px 10px",
-                  marginBottom: "12px",
-                  borderRadius: "6px",
-                  background: "rgba(255,255,255,0.05)",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255,255,255,0.15)";
-                  e.currentTarget.style.color = "white";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255,255,255,0.05)";
-                  e.currentTarget.style.color =
-                    "rgba(255,255,255,0.7)";
-                }}
-              >
-                + Add Channel
+              <div style={{ marginBottom: "20px" }}>
+                <h2 style={{ fontSize: "20px", marginBottom: "8px" }}>
+                  {selectedServer.name}
+                </h2>
+                <p style={{ fontSize: "12px", opacity: 0.7 }}>
+                  Server ID: {selectedServer.id}
+                </p>
               </div>
 
-              {channels.map((channel) => {
-                const isActive = activeChannel === channel.id;
-                return (
-                  <div
-                    key={channel.id}
-                    onClick={() => setActiveChannel(channel.id)}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                }}
+              >
+                <h3 style={{ fontSize: "14px", opacity: 0.8 }}>CHANNELS</h3>
+                {isServerOwner && (
+                  <button
+                    onClick={() => setShowAddChannel(true)}
                     style={{
-                      padding: "10px",
-                      borderRadius: "8px",
-                      marginBottom: "6px",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      background: "rgba(139, 92, 246, 0.3)",
+                      color: "white",
+                      border: "none",
                       cursor: "pointer",
-                      background: isActive
-                        ? "rgba(255,255,255,0.25)"
-                        : "transparent",
+                      fontSize: "16px",
+                      fontWeight: "bold",
                     }}
+                    title="Create Channel"
                   >
-                    {channel.name}
-                  </div>
-                );
-              })}
+                    +
+                  </button>
+                )}
+              </div>
+
+              {channels.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    opacity: 0.7,
+                    marginTop: "20px",
+                  }}
+                >
+                  Loading channels...
+                </div>
+              ) : (
+                channels.map((channel) => {
+                  const isActive = selectedChannel?.id === channel.id;
+                  return (
+                    <div
+                      key={channel.id}
+                      onClick={() => setSelectedChannel(channel)}
+                      style={{
+                        padding: "10px",
+                        borderRadius: "8px",
+                        marginBottom: "6px",
+                        cursor: "pointer",
+                        color: "white",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        position: "relative",
+                        background: isActive
+                          ? "rgba(255,255,255,0.25)"
+                          : "transparent",
+                        transform: isActive ? "scale(1.02)" : "scale(1)",
+                        transition: "0.2s",
+                      }}
+                    >
+                      {isActive && (
+                        <div
+                          style={{
+                            width: "6px",
+                            height: "100%",
+                            background: "white",
+                            borderRadius: "6px",
+                            position: "absolute",
+                            left: "-12px",
+                          }}
+                        />
+                      )}
+                      #{channel.name}
+                    </div>
+                  );
+                })
+              )}
             </>
           )}
         </div>
 
-        {/* Main Chat or Children */}
-        <main style={{ flex: 1, background: "rgba(0,0,0,0.25)" }}>
+        {/* Main Content Area */}
+        <main style={{ flex: 1, background: "rgba(0, 0, 0, 0.25)" }}>
           {selectedFriend ? (
             <DirectMessages friend={selectedFriend} />
+          ) : selectedServer &&
+            selectedChannel &&
+            selectedChannel.id !== undefined ? (
+            <ServerMessages server={selectedServer} channel={selectedChannel} />
           ) : (
             children
           )}
         </main>
-
-        {/* Right-side Members Panel */}
-        {selectedServer && (
-          <div
-            style={{
-              width: "220px",
-              background: "rgba(0,0,0,0.35)",
-              backdropFilter: "blur(6px)",
-              padding: "20px",
-              color: "white",
-              borderLeft: "1px solid rgba(255,255,255,0.1)",
-            }}
-          >
-            <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>
-              Members
-            </h2>
-
-            {friends.length === 0 ? (
-              <div style={{ opacity: 0.6 }}>No members yet.</div>
-            ) : (
-              friends.map((friend) => ( // replace with serverMembers[selectedServer].map(...) to pull from Server.sol contract
-                <div
-                  key={friend.address}
-                  style={{
-                    padding: "10px",
-                    marginBottom: "8px",
-                    borderRadius: "8px",
-                    background: "rgba(255,255,255,0.08)",
-                  }}
-                >
-                  {friend.username}
-                  <div style={{ fontSize: "12px", opacity: 0.7 }}>
-                    {friend.address.slice(0, 6)}...
-                    {friend.address.slice(-4)}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
       </div>
     </div>
   );
