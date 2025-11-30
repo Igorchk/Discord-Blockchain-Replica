@@ -9,17 +9,27 @@ export default function DashboardLayout({ children }) {
     const [tooltip, setToolTip] = useState({show: false, text: "", x: 0, y: 0});
 
     // Placeholder Servers
-    const servers = [
-        { id: "server1", label: "S1", name: "Server One", unread: 2 },
-        { id: "server2", label: "S2", name: "Server Two", unread: 5 },
-    ];
+    const [servers, setServers] = useState([
+        { id: "server1", label: "S1", name: "Server One", members: ["alice", "bob"] },
+        { id: "server2", label: "S2", name: "Server Two", members: ["alice"] },
+    ]);
 
     // Placeholder Channels
-    const channels = [
-        { id: "general", name: "#general" },
-        { id: "chat", name: "#chat" },
-        { id: "random", name: "#random" },
-    ];
+    const [channels, setChannels] = useState({
+        server1: [
+            { id: "general", name: "#general" },
+            { id: "chat", name: "#chat" },
+            { id: "random", name: "#random" }
+        ],
+        server2: [{ id: "general", name: "#general" }]
+    });
+
+    // Modal State
+    const [showCreateServer, setShowCreateServer] = useState(false);
+    const [newServerName, setNewServerName] = useState("");
+
+    const [showCreateChannel, setShowCreateChannel] = useState(false);
+    const [newChannelName, setNewChannelName] = useState("");
 
     // Show tooltip (text when hovering over server)
     const showTooltip = (text, event) => {
@@ -34,6 +44,45 @@ export default function DashboardLayout({ children }) {
 
     // Hide tooltip
     const hideTooltip = () => setToolTip({show: false, text: "", x: 0, y: 0});
+
+    // Create Server
+    const handleCreateServer = () => {
+        if(!newServerName.trim()) return;
+
+        const newID = "server" + (servers.length + 1);
+        setServers([
+            ...servers,
+            {
+                id: newID,
+                label: "S" + (servers.length + 1),
+                name: newServerName,
+                members: ["alice"]
+            }
+        ]);
+        setChannels({...channels, [newID]: [{id: "general", name: "#general"}]});
+        setNewServerName("");
+        setShowCreateServer(false);
+    };
+
+    // Create Channel
+    const handleCreateChannel = () => {
+        if(!newChannelName.trim() || !selectedServer) return;
+
+        const serverCh = channels[selectedServer] || [];
+        setChannels({
+            ...channels,
+            [selectedServer]: [
+                ...serverCh,
+                {
+                    id: newChannelName.toLowerCase().replace(/\s+/g, "-"),
+                    name: "#" + newChannelName
+                }
+            ]
+        });
+
+        setNewChannelName("");
+        setShowCreateChannel(false);
+    };
 
     return (
         <div
@@ -76,6 +125,8 @@ export default function DashboardLayout({ children }) {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
+                    justifyContent: "flex-start",
+                    height: "100%",
                     gap: "16px",
                     boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
                     position: "relative",
@@ -134,6 +185,31 @@ export default function DashboardLayout({ children }) {
                         </div>
                     )}
                     🏠
+                </div>
+
+                {/* Add Server Button */}
+                <div
+                    onClick={() => setShowCreateServer(true)}
+                    onMouseEnter={(e) => showTooltip("Create Server", e)}
+                    onMouseLeave={hideTooltip}
+                    style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+                        color: "white",
+                        fontSize: "28px",
+                        fontWeight: "bold",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        marginBottom: "12px",
+                        transition: "0.2s",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                    }}
+                >
+                    +
                 </div>
 
                 {/* Server Icons */}
@@ -247,7 +323,33 @@ export default function DashboardLayout({ children }) {
                     <>
                         <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>Channels</h2>
 
-                        {channels.map((channel) => {
+                        {/* Add Channel Button */}
+                        <div
+                            onClick={() => setShowCreateChannel(true)}
+                            style={{
+                                padding: "6px 10x",
+                                borderRadius: "6px",
+                                marginBottom: "12px",
+                                cursor: "pointer",
+                                color: "rgba(255, 255, 255, 0.7)",
+                                background: "rgba(255, 255, 255, 0.05)",
+                                fontSize: "14px",
+                                width: "fit-content",
+                                transition: "0.2s",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+                                e.currentTarget.style.color = "white";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                e.currentTarget.style.color = "rgba(255, 255, 255, 0.7)";
+                            }}
+                        >
+                            + Add Channel
+                        </div>
+
+                        {(channels[selectedServer] || []).map((channel) => {
                             const isActive = activeChannel === channel.id;
 
                             return (
