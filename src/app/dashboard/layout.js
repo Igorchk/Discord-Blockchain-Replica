@@ -2,8 +2,8 @@
 import { useState, useEffect } from "react";
 import { useWeb3 } from "@/contexts/Web3Context";
 import { getContracts } from "@/lib/contracts";
-import DirectMessages from "./DirectMessages.jsx";
-import AddFriend from "./AddFriend.jsx";
+import DirectMessages from "./DirectMessages.jsx";  // DM panel
+import AddFriend from "./AddFriend.jsx";            // Add Friend modal
 
 export default function DashboardLayout({ children }) {
   const { account, signer, isConnected } = useWeb3();
@@ -15,6 +15,7 @@ export default function DashboardLayout({ children }) {
   const [tooltip, setToolTip] = useState({ show: false, text: "", x: 0, y: 0 });
   const [username, setUsername] = useState("");
 
+  // Fetch username from blockchain
   useEffect(() => {
     async function fetchUsername() {
       if (isConnected && signer && account) {
@@ -30,6 +31,7 @@ export default function DashboardLayout({ children }) {
     fetchUsername();
   }, [isConnected, signer, account]);
 
+  // Load friends list from local storage
   useEffect(() => {
     if (account && typeof window !== "undefined") {
       const key = `friends_${account.toLowerCase()}`;
@@ -38,17 +40,20 @@ export default function DashboardLayout({ children }) {
     }
   }, [account]);
 
+  // Placeholder Servers
   const servers = [
     { id: "server1", label: "S1", name: "Server One", unread: 2 },
     { id: "server2", label: "S2", name: "Server Two", unread: 5 },
   ];
 
+  // Placeholder Channels
   const channels = [
     { id: "general", name: "#general" },
     { id: "chat", name: "#chat" },
     { id: "random", name: "#random" },
   ];
 
+  // Adding new friend
   const handleFriendAdded = (friend) => {
     if (!friends.find((f) => f.address === friend.address)) {
       const newFriends = [...friends, friend];
@@ -60,6 +65,7 @@ export default function DashboardLayout({ children }) {
     }
   };
 
+  // Show and Hide Tooltip
   const showTooltip = (text, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
     setToolTip({
@@ -72,6 +78,7 @@ export default function DashboardLayout({ children }) {
 
   const hideTooltip = () => setToolTip({ show: false, text: "", x: 0, y: 0 });
 
+  // Main UI Layout
   return (
     <div
       style={{
@@ -82,6 +89,8 @@ export default function DashboardLayout({ children }) {
         flexDirection: "column",
       }}
     >
+
+      {/* Username + Wallet Address */}
       <div
         style={{
           padding: "12px 20px",
@@ -107,6 +116,8 @@ export default function DashboardLayout({ children }) {
       </div>
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}></div>
+
+      {/* Sidebar + Friend/Channel Panel + Chat View */}
       <div
         style={{
           height: "100vh",
@@ -115,6 +126,8 @@ export default function DashboardLayout({ children }) {
           overflow: "hidden",
         }}
       >
+
+        {/* Tooltip for Server Icons and Buttons */}
         {tooltip.show && (
           <div
             style={{
@@ -136,6 +149,7 @@ export default function DashboardLayout({ children }) {
           </div>
         )}
 
+        {/* Add Friend Modal */}
         {showAddFriend && (
           <AddFriend
             onFriendAdded={handleFriendAdded}
@@ -143,6 +157,7 @@ export default function DashboardLayout({ children }) {
           />
         )}
 
+        {/* Left Sidebar -- Home + Servers */}
         <div
           style={{
             width: "80px",
@@ -157,6 +172,8 @@ export default function DashboardLayout({ children }) {
             position: "relative",
           }}
         >
+
+          {/* Home Button */}
           <div
             onClick={() => {
               setSelectedServer(null);
@@ -193,6 +210,7 @@ export default function DashboardLayout({ children }) {
                   : "none",
             }}
           >
+            {/* Sidebar Selection Indicator */}
             {selectedServer === null && !selectedFriend && (
               <div
                 style={{
@@ -205,9 +223,33 @@ export default function DashboardLayout({ children }) {
                 }}
               />
             )}
-            H
+            🏠
           </div>
 
+          {/* Add Server Button */}
+          <div
+            onClick={() => alert("TODO: Create Server Modal")}
+            onMouseEnter={(e) => showTooltip("Create Server", e)}
+            onMouseLeave={hideTooltip}
+            style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+                color: "white",
+                fontSize: "28px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                cursor: "pointer",
+                transition: "0.2s",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            +
+          </div>
+
+          {/* Server Icons */}
           {servers.map((server) => (
             <div
               key={server.id}
@@ -257,6 +299,8 @@ export default function DashboardLayout({ children }) {
                 />
               )}
               {server.label}
+
+              {/* Unread Messages Badge */}
               {server.unread > 0 && (
                 <div
                   style={{
@@ -282,6 +326,7 @@ export default function DashboardLayout({ children }) {
           ))}
         </div>
 
+        {/* Friends or Channels List */}
         <div
           style={{
             width: "260px",
@@ -294,12 +339,14 @@ export default function DashboardLayout({ children }) {
             color: "white",
           }}
         >
+          {/* Show Friends List */}
           {selectedServer === null && (
             <>
               <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>
                 Friends
               </h2>
 
+              {/* Add Friend Button */}
               <button
                 onClick={() => setShowAddFriend(true)}
                 style={{
@@ -316,6 +363,7 @@ export default function DashboardLayout({ children }) {
                 Add Friend
               </button>
 
+              {/* DM List */}
               {friends.length === 0 ? (
                 <div
                   style={{
@@ -367,12 +415,39 @@ export default function DashboardLayout({ children }) {
             </>
           )}
 
+          {/* Show Channels List */}
           {selectedServer !== null && (
             <>
               <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>
                 Channels
               </h2>
 
+              {/* Add Text Channel Button */}
+              <div
+                onClick={() => alert("TODO: Create Channel Modal")}
+                style={{
+                    padding: "6px 10px",
+                    borderRadius: "6px",
+                    marginBottom: "12px",
+                    cursor: "pointer",
+                    color: "rgba(255, 255, 255, 0.7)",
+                    background: "rgba(255, 255, 255, 0.05)",
+                    fontSize: "14px",
+                    width: "fit-content",
+                    transition: "0.2s",
+                }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+                    e.currentTarget.style.color = "white";
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                    e.currentTarget.style.color = "rgba(255, 255, 255, 0.7)";
+                }}
+              >
+                + Add Channel
+              </div>
+            
               {channels.map((channel) => {
                 const isActive = activeChannel === channel.id;
                 return (
@@ -416,6 +491,7 @@ export default function DashboardLayout({ children }) {
           )}
         </div>
 
+        {/* Right Panel -- DM Panel or Main Page Content */}
         <main style={{ flex: 1, background: "rgba(0, 0, 0, 0.25)" }}>
           {selectedFriend ? (
             <DirectMessages friend={selectedFriend} />
