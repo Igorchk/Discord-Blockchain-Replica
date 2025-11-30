@@ -6,10 +6,10 @@ import MessageABI from "../../build/contracts/Message.json";
 import DirectMessagesABI from "../../build/contracts/DirectMessages.json";
 
 const CONTRACTS = {
-  User: "0x68cCe90e4208c72F20Ce6011f0dA9F5f2651223f",
-  Server: "0xe9AD25D0b6e5fd5395D619bD480f48dc752667A1",
-  Message: "0x00024932A86D6Ec9900725E4cCDf2f650f38A26F",
-  DirectMessages: "0x29fE333D0dd43140fE00eE9D90a33ABaf210616d",
+  User: "0x9DF1Dec276296A2109e1BAFcAce18714F8be9bD3",
+  Server: "0x17FE209F5Cc8F0fd045Dc066b559e6b6ad12CE8b",
+  Message: "0xc1E6D480c9491Cb51cE2AfD7D9437264d38BF954",
+  DirectMessages: "0xCabc5D38588De7Ac42E4b5E42BAC91a4C2d53A26",
 };
 
 export class UserContract {
