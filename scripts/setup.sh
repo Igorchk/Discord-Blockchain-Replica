@@ -49,6 +49,7 @@ if ! command -v ipfs &> /dev/null; then
     wget https://dist.ipfs.tech/kubo/v0.28.0/kubo_v0.28.0_linux-amd64.tar.gz
     tar -xvzf kubo_v0.28.0_linux-amd64.tar.gz
     cd kubo
+    sudo bash install.sh
     cd ..
     rm -rf kubo kubo_v0.28.0_linux-amd64.tar.gz
     ipfs init
