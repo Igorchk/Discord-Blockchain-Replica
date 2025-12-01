@@ -106,9 +106,6 @@ export default function DirectMessages({ friend }) {
       const dmContract = new DirectMessagesContract(signer);
       await dmContract.storeMessageBatch(friend.address, cid, batchHash);
 
-      setMessages([...messages, messageObj]);
-      setNewMessage("");
-
       setTimeout(() => loadConversation(), 2000);
 
       setMessages([...messages, messageObj]);
