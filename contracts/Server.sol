@@ -19,9 +19,7 @@ contract Server {
     mapping(uint256 => mapping(uint256 => Channel)) public channels;
     uint256 public serverCount;
     
-    uint256 public constant MAX_MEMBERS = 1000;
     uint256 public constant MAX_NAME_LENGTH = 100;
-    uint256 public constant MAX_CHANNELS = 50;
 
     event ServerCreated(uint256 indexed serverId, string name, address indexed owner);
     event MemberJoined(uint256 indexed serverId, address indexed member);
@@ -56,7 +54,6 @@ contract Server {
         require(servers[serverId].owner == msg.sender, "Only owner can create channels");
         require(bytes(channelName).length > 0, "Channel name cannot be empty");
         require(bytes(channelName).length <= MAX_NAME_LENGTH, "Channel name too long");
-        require(servers[serverId].channelCount < MAX_CHANNELS, "Max channels reached");
 
         uint256 channelId = servers[serverId].channelCount;
         channels[serverId][channelId] = Channel(channelName, true);
@@ -115,32 +112,11 @@ contract Server {
         require(serverId < serverCount, "Invalid server ID");
         require(servers[serverId].exists, "Server does not exist");
         require(!membershipMap[serverId][msg.sender], "Already a member");
-        require(servers[serverId].members.length < MAX_MEMBERS, "Server is full");
 
         servers[serverId].members.push(msg.sender);
         membershipMap[serverId][msg.sender] = true;
 
         emit MemberJoined(serverId, msg.sender);
-    }
-
-    function leaveServer(uint256 serverId) external {
-        require(serverId < serverCount, "Invalid server ID");
-        require(servers[serverId].exists, "Server does not exist");
-        require(membershipMap[serverId][msg.sender], "Not a member");
-        require(servers[serverId].owner != msg.sender, "Owner cannot leave");
-
-        membershipMap[serverId][msg.sender] = false;
-
-        address[] storage members = servers[serverId].members;
-        for (uint256 i = 0; i < members.length; i++) {
-            if (members[i] == msg.sender) {
-                members[i] = members[members.length - 1];
-                members.pop();
-                break;
-            }
-        }
-
-        emit MemberLeft(serverId, msg.sender);
     }
 
     function getServer(uint256 serverId)
@@ -153,36 +129,5 @@ contract Server {
         
         ServerData storage s = servers[serverId];
         return (s.name, s.owner, s.members);
-    }
-
-    function getMemberCount(uint256 serverId) external view returns (uint256) {
-        require(serverId < serverCount, "Invalid server ID");
-        require(servers[serverId].exists, "Server does not exist");
-        
-        return servers[serverId].members.length;
-    }
-
-    function getAllServers() 
-        external 
-        view 
-        returns (
-            uint256[] memory ids, 
-            string[] memory names, 
-            uint256[] memory memberCounts
-        ) 
-    {
-        ids = new uint256[](serverCount);
-        names = new string[](serverCount);
-        memberCounts = new uint256[](serverCount);
-
-        for (uint256 i = 0; i < serverCount; i++) {
-            if (servers[i].exists) {
-                ids[i] = i;
-                names[i] = servers[i].name;
-                memberCounts[i] = servers[i].members.length;
-            }
-        }
-
-        return (ids, names, memberCounts);
     }
 }
