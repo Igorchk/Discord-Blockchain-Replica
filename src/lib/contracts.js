@@ -6,10 +6,10 @@ import MessageABI from "../../build/contracts/Message.json";
 import DirectMessagesABI from "../../build/contracts/DirectMessages.json";
 
 const CONTRACTS = {
-  User: "0x19182526704DD7328D63bd2B3990aB1846e2CCa2",
-  Server: "0xE19B570964dC9349BdCd7406feAB384A22aae121",
-  Message: "0x31eBF533dDF46F04bF22F850DB65Cbd146431C76",
-  DirectMessages: "0x04402E58b0B53B3BcC1bde242002CB911C2d8327",
+  User: "0x8924292b0502F0FC16cc3cc288d35E0eFA8e2A20",
+  Server: "0xd4B6B4C0DE60ce101ba32baaAEb9aeB0b982c38b",
+  Message: "0x744B6a431140816A5d0b1b8607AB2EF9261e51C7",
+  DirectMessages: "0x1C41275480eCEbEE611A3a4785C2BB659B117D05",
 };
 
 export class UserContract {
@@ -45,14 +45,6 @@ export class UserContract {
     }
   }
 
-  async isUsernameAvailable(username) {
-    return await this.contract.isUsernameAvailable(username);
-  }
-
-  async getUserData(address) {
-    return await this.contract.getUserData(address);
-  }
-
   async getUserAddress(username) {
     return await this.contract.getUserAddress(username);
   }
@@ -79,12 +71,6 @@ export class ServerContract {
     return receipt;
   }
 
-  async leaveServer(serverId) {
-    const tx = await this.contract.leaveServer(serverId);
-    const receipt = await tx.wait();
-    return receipt;
-  }
-
   async getServer(serverId) {
     return await this.contract.getServer(serverId);
   }
@@ -93,18 +79,9 @@ export class ServerContract {
     return await this.contract.isMember(serverId, address);
   }
 
-  async getMemberCount(serverId) {
-    const count = await this.contract.getMemberCount(serverId);
-    return Number(count);
-  }
-
   async getServerCount() {
     const count = await this.contract.serverCount();
     return Number(count);
-  }
-
-  async getAllServers() {
-    return await this.contract.getAllServers();
   }
 
   async createChannel(serverId, channelName) {
@@ -151,11 +128,6 @@ export class MessageContract {
   async getBatches(serverId, channelId) {
     return await this.contract.getBatches(serverId, channelId);
   }
-
-  async getBatchCount(serverId, channelId) {
-    const count = await this.contract.getBatchCount(serverId, channelId);
-    return Number(count);
-  }
 }
 
 export class DirectMessagesContract {
@@ -175,11 +147,6 @@ export class DirectMessagesContract {
 
   async getConversation(user1, user2) {
     return await this.contract.getConversation(user1, user2);
-  }
-
-  async getConversationLength(user1, user2) {
-    const length = await this.contract.getConversationLength(user1, user2);
-    return Number(length);
   }
 }
 
