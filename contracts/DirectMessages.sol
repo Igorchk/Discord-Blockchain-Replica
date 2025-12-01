@@ -28,10 +28,4 @@ contract DirectMessages {
         address higher = user1 < user2 ? user2 : user1;
         return conversations[lower][higher];
     }
-
-    function getConversationLength(address user1, address user2) public view returns (uint) {
-        address lower = user1 < user2 ? user1 : user2;
-        address higher = user1 < user2 ? user2 : user1;
-        return conversations[lower][higher].length;
-    }
 }

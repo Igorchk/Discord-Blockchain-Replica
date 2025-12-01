@@ -69,20 +69,4 @@ contract Message {
     {
         return batches[serverId][channelId];
     }
-
-    function getBatchCount(uint256 serverId, uint256 channelId) 
-        external 
-        view 
-        returns (uint256) 
-    {
-        return batches[serverId][channelId].length;
-    }
-
-    function getBatchAt(uint256 serverId, uint256 channelId, uint256 index) 
-        external 
-        view 
-        returns (MessageBatch memory) 
-    {
-        return batches[serverId][channelId][index];
-    }
 }
